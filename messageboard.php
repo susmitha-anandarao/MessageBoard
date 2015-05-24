@@ -1,0 +1,99 @@
+<html>
+<head>
+	<title>Message board</title>
+	<style>
+		div.message{
+			border : 1px solid;
+			border-radius : 5px;
+			margin : 5px;
+			padding : 5px;
+		}
+		div.message:hover{
+			background-color : PaleTurquoise;
+		}
+		body{
+			background-color : GhostWhite;
+			color : Navy;
+		}
+		.button {
+			background-color : PaleTurquoise;
+			border-radius : 5px;
+			font-size : 100%;
+			color : Navy;
+		}
+		input{
+			border-radius : 10px;
+			padding : 5px;
+			margin : 5px;
+			background-color : GhostWhite;
+			color : Navy;
+		}
+		
+		a{
+			color : Navy;
+		}
+		h1{
+			text-align : center;
+		}
+	</style>
+</head>
+<body>
+<h1>Message Board</h1>
+<?php
+	session_start();
+	$username = $_SESSION['username'];
+	print "<form action = 'messageboard.php' method = 'GET'><input type = 'hidden' name = 'logout' value = '1'/><input style = 'float:left' class = 'button' type='submit' value='Logout'/></form><form action = 'messageboard.php' method = 'GET'><input type = 'hidden' name = 'new' value = '1'/><input class = 'button' style = 'float:right' type='submit' value='New Message'/></form></br></br></br>";
+	if (isset($_GET['logout'])){
+		unset($_SESSION['username']);
+		header('Location: board.php');
+	}
+	if (isset($_GET['new'])){
+		header('Location: new_message.php');
+		
+	}
+	if(isset($_GET['message'])){
+		$message = $_GET['message'];
+		$username = $_SESSION['username'];
+		try {
+			$dbh = new PDO("mysql:host=127.0.0.1:3306;dbname=board","root","",array(PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION));
+			$dbh->beginTransaction();
+			if(isset($_GET['reply_message'])){
+				$query = "insert into posts values('" . uniqid() . "','$username','" . $_GET['reply_message'] . "',now()" . ",'$message')";
+			}
+			else{
+				$query = "insert into posts values('" . uniqid() . "','$username','',now()" . ",'$message')";
+			}
+			$dbh->exec($query)
+        	or die(print_r($dbh->errorInfo(), true));
+			$dbh->commit();
+  			
+			
+		}catch (PDOException $e) {
+			print "Error!: " . $e->getMessage() . "<br/>";
+			die();
+		}
+	}
+	try {
+		$dbh = new PDO("mysql:host=127.0.0.1:3306;dbname=board","root","",array(PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION));
+		$dbh->beginTransaction();
+		$stmt = $dbh->prepare('select * from posts order by datetime');
+		$stmt->execute();
+		//print "<table><tr><th>Message ID</th><th>Message</th><th>Reply to</th><th>Username</th><th>Full Name</th><th>Date</th><th></th></tr>";
+		while ($row = $stmt->fetch()) {
+			$stmt_new = $dbh->prepare("select username, fullname from users where username ='" . $row[1] . "'");
+			$stmt_new->execute();
+			if($row_new = $stmt_new->fetch()){
+				$reply_to = "Reply to " . $row[2];
+				if($row[2] == ''){
+					$reply_to = ' Original message';
+				}
+				//print "<tr><td>" . $row[0] . "</td><td>" . $row[4] . "</td><td>" . $row[2] . "</td><td>" . $row_new[0] . "</td><td>" . $row_new[1] . "</td><td>" .  $row[3] . "</td><td><td><a href = 'new_message.php?reply=" . $row[0] ."'>Reply</a></td></tr>";
+				print "<div class = 'message'><div><div style='float:left'>" . $row_new[1]. " ( " . $row_new[0] . " )</div><div style='float:right'>" . $row[3] . "</div></div></br></br><div><div style='float:left'>" . $row[0] . "</div><div align=center>" . $row[4] . "</div></br><div style='float:left'><a href = 'new_message.php?reply=" . $row[0] ."'>Reply</a></div><div style='float:right'>" . $reply_to . "</div></div></br></div>";
+			}
+		}
+		//print "</tr></table>";
+	}catch (PDOException $e) {
+			print "Error!: " . $e->getMessage() . "<br/>";
+			die();
+		}
+?>

@@ -1,0 +1,61 @@
+<html>
+<head><title>Message Board</title></head>
+	<style>
+		body{
+			background-color : GhostWhite;
+			color : Navy;
+		}
+		.button {
+			background-color : PaleTurquoise;
+			border-radius : 5px;
+			font-size : 100%;
+			color : Navy;
+		}
+		input{
+			border-radius : 10px;
+			padding : 5px;
+			margin : 5px;
+			background-color : GhostWhite;
+			color : Navy;
+		}
+		
+		a{
+			color : Navy;
+		}
+		h1{
+			text-align : center;
+		}
+	</style>
+<body>
+<h1>Message Board</h1>
+<?php
+error_reporting(E_ALL);
+ini_set('display_errors','On');
+session_start();
+if(isset($_POST['username']) && isset($_POST['password'])){
+	$username = $_POST['username'];
+	$password = $_POST['password'];
+	try {
+		$dbh = new PDO("mysql:host=127.0.0.1:3306;dbname=board","root","",array(PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION));
+		$dbh->beginTransaction();
+		$stmt = $dbh->prepare("select * from users where username = '" . $username . "'and password = '" . md5($password) . "'");
+		$stmt->execute();
+		if(null == $stmt->fetch()){
+			header('Location: board.php');
+  			exit;
+  		}
+		else{
+			$_SESSION['username'] = $username;
+  			header('Location: messageboard.php');
+  		
+		}
+	}catch (PDOException $e) {
+		print "Error!: " . $e->getMessage() . "<br/>";
+		die();
+	}
+}
+print "<table><form action = 'board.php' method = 'POST'><tr><td>Username : </td><td><input type='text' name='username'/></td></tr><tr><td>Password : </td><td><input type='password' name='password'/></td></tr><tr colspan = '2'><td><input class = 'button' type='submit' value='Login'/></td></tr></form><tr colspan = '2'><td></form><form action = 'new_user.php' method = 'POST'><input class = 'button' type='submit' value='New user? Register here'/></td></tr></table>";
+
+?>
+</body>
+</html>
